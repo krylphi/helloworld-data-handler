@@ -1,4 +1,7 @@
 # helloworld-data-handler
+## Information
+The AWS S3 do not support appending to the existing file (overwrite only), for this particular reason the server only writing data upon shutdown, because of task limitations. I would rather periodically save data and flush streams (on timeout) with incremental id in filename.
+This would also drastically improve memory consumption.
 
 ## Installation
 1. compile binary.
