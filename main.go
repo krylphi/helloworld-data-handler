@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/krylphi/helloworld-data-handler/internal/routing"
+	"github.com/krylphi/helloworld-data-handler/internal/utils"
 	"github.com/valyala/fasthttp"
 	"log"
 	"os"
@@ -11,8 +12,9 @@ import (
 
 func main() {
 	router := routing.NewRouter()
+	addr:= utils.Concat(utils.GetEnvDef("ADDR", "0.0.0.0"), ":", utils.GetEnvDef("PORT", "8902"))
 	go func() {
-		err := fasthttp.ListenAndServe(":8902", router.HttpRouter)
+		err := fasthttp.ListenAndServe(addr, router.HttpRouter)
 		if err != nil {
 			log.Fatal("error handling")
 		}
