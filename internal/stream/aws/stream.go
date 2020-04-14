@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/krylphi/helloworld-data-handler/internal/stream"
 	"log"
 	"strconv"
@@ -9,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/krylphi/helloworld-data-handler/internal/domain"
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
 )
@@ -46,14 +46,14 @@ func NewStreamHandler() *StreamHandler {
 		awsSession: sess,
 		streamMap: streamMap{
 			lock:    sync.RWMutex{},
-			streams: make(map[int]*uploadStream, 10),
+			streams: make(map[int]*streamIO, 10),
 		},
 		wg:     &sync.WaitGroup{},
 		bucket: awsBucket,
 	}
 }
 
-func (sh *StreamHandler) Send(e *domain.Entry) {
+func (sh *StreamHandler) Send(e *domain.Entry) error {
 	if sh.next != nil {
 		go sh.next.Send(e)
 	}
@@ -61,33 +61,21 @@ func (sh *StreamHandler) Send(e *domain.Entry) {
 	key := utils.Concat("/chat/", date, "/content_logs_", date, "_", strconv.Itoa(e.ClientId))
 	upStream := sh.streamMap.get(e.ClientId)
 	if upStream == nil {
-		s := newStreamIO()
-		upStream = &uploadStream{
-			uploader: s3manager.NewUploader(sh.awsSession, func(u *s3manager.Uploader) {
-				u.PartSize = 5 * 1024 * 1024 // The minimum/default allowed part size is 5MB
-				u.Concurrency = 2            // default is 5
-			}),
-			reader: s,
+		input := &s3.CreateMultipartUploadInput{
+			Bucket:      aws.String(sh.bucket),
+			Key:         aws.String(key),
+			ContentType: aws.String("application/gzip"),
 		}
-		sh.wg.Add(1)
-		go func() {
-			res, err := upStream.uploader.Upload(&s3manager.UploadInput{
-				Bucket: aws.String(sh.bucket),
-				Key:    aws.String(key),
-				Body:   s,
-			})
-			if err != nil {
-				log.Print(utils.Concat("writing to bucket: ", sh.bucket, " key: ", key, " completed with error: ", err.Error()))
-			} else {
-				log.Print(utils.Concat("writing to bucket: ", sh.bucket, " key: ", key, " completed with Location: ", res.Location))
-			}
-
-			sh.wg.Done()
-		}()
+		s, err := newUploadStream(sh.awsSession, input)
+		if err != nil {
+			return err
+		}
+		upStream = newStreamIO(s)
 		sh.streamMap.set(e.ClientId, upStream)
-		s.Run(sh.wg)
+		upStream.Run(sh.wg)
 	}
-	upStream.reader.Send(e)
+	upStream.Send(e)
+	return nil
 }
 
 func (sh *StreamHandler) Flush() {

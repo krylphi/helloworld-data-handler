@@ -28,7 +28,13 @@ func (r *Router) handlePostLog(ctx *fasthttp.RequestCtx) {
 		ctx.Error(r, fasthttp.StatusBadRequest)
 		return
 	}
-	r.streamHandler.Send(entry)
+	err = r.streamHandler.Send(entry)
+	if err != nil {
+		r := utils.Concat("err: ", err.Error(), "data: ", string(data))
+		log.Print(r)
+		ctx.Error(r, fasthttp.StatusBadRequest)
+		return
+	}
 	ctx.Success("text/plain", []byte("OK"))
 	//log.Print(utils.Concat("end: ", time.Now().Format(time.StampMilli)))
 }

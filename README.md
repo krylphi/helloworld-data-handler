@@ -1,8 +1,4 @@
 # helloworld-data-handler
-## Information
-The AWS S3 do not support appending to the existing file (overwrite only), for this particular reason the server only writing data upon shutdown, because of task limitations. I would rather periodically save data and flush streams (on timeout) with incremental id in filename.
-This would also drastically improve memory consumption.
-
 ## Installation
 1. compile binary.
 2. Set environment variables
@@ -28,4 +24,4 @@ Full performance benchmarks are in th benchmark folder
 - server accepts approx. 15000-30000 queries per second with 0 KO rate and 86% responses in less < 800 ms under stress load (see Gatling benchmarks).
 
 ## Logged time
-It took aprox. 17 hours to implement the server, including aprox 5-6 hours research.
+It took aprox. 19 hours to implement the server, including aprox 5-6 hours research.
