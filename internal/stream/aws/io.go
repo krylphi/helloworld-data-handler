@@ -45,7 +45,7 @@ func (s *streamIO) Run(wg *sync.WaitGroup) {
 	var err error = nil
 	go func() {
 		for e := range s.queue {
-			log.Print(utils.Concat("New entity:", string(e.Marshal())))
+			//log.Print(utils.Concat("New entity:", string(e.Marshal())))
 			if _, err = s.gzw.Write(e.Marshal()); err != nil {
 				log.Print("failed to write to stream")
 			}
