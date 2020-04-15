@@ -1,20 +1,22 @@
 package main
 
 import (
-	"github.com/krylphi/helloworld-data-handler/internal/routing"
-	"github.com/krylphi/helloworld-data-handler/internal/utils"
-	"github.com/valyala/fasthttp"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/krylphi/helloworld-data-handler/internal/routing"
+	"github.com/krylphi/helloworld-data-handler/internal/utils"
+
+	"github.com/valyala/fasthttp"
 )
 
 func main() {
 	router := routing.NewRouter()
-	addr:= utils.Concat(utils.GetEnvDef("ADDR", "0.0.0.0"), ":", utils.GetEnvDef("PORT", "8902"))
+	addr := utils.Concat(utils.GetEnvDef("ADDR", "0.0.0.0"), ":", utils.GetEnvDef("PORT", "8902"))
 	go func() {
-		err := fasthttp.ListenAndServe(addr, router.HttpRouter)
+		err := fasthttp.ListenAndServe(addr, router.HTTPRouter)
 		if err != nil {
 			log.Fatal("error handling")
 		}
@@ -29,7 +31,7 @@ func main() {
 	<-quit
 	log.Println("Shutting down Server ...")
 
-	router.Shutdown()
+	shutdown(router)
 
 	log.Println("Server exiting")
 

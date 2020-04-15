@@ -1,19 +1,21 @@
 package aws
 
 import (
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/krylphi/helloworld-data-handler/internal/stream"
 	"log"
 	"strconv"
 	"sync"
 
+	"github.com/krylphi/helloworld-data-handler/internal/domain"
+	"github.com/krylphi/helloworld-data-handler/internal/stream"
+	"github.com/krylphi/helloworld-data-handler/internal/utils"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/krylphi/helloworld-data-handler/internal/domain"
-	"github.com/krylphi/helloworld-data-handler/internal/utils"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+// StreamHandler handler for incoming data and passing them to respective streams
 type StreamHandler struct {
 	wg         *sync.WaitGroup
 	awsSession *session.Session
@@ -22,6 +24,7 @@ type StreamHandler struct {
 	next       stream.Stream
 }
 
+// NewStreamHandler StreamHandler constructor
 func NewStreamHandler() *StreamHandler {
 	var awsConfig *aws.Config
 	accessKey := utils.GetEnvDef("AWS_ACCESS_KEY", "")
@@ -53,13 +56,14 @@ func NewStreamHandler() *StreamHandler {
 	}
 }
 
+// Send sends message to stream or creating new, if non existent
 func (sh *StreamHandler) Send(e *domain.Entry) error {
 	if sh.next != nil {
 		go sh.next.Send(e)
 	}
 	date := utils.DateFromUnixMillis(e.Timestamp)
-	key := utils.Concat("/chat/", date, "/content_logs_", date, "_", strconv.Itoa(e.ClientId))
-	upStream := sh.streamMap.get(e.ClientId)
+	key := utils.Concat("/chat/", date, "/content_logs_", date, "_", strconv.Itoa(e.ClientID))
+	upStream := sh.streamMap.get(e.ClientID)
 	if upStream == nil {
 		input := &s3.CreateMultipartUploadInput{
 			Bucket:      aws.String(sh.bucket),
@@ -71,13 +75,14 @@ func (sh *StreamHandler) Send(e *domain.Entry) error {
 			return err
 		}
 		upStream = newStreamIO(s)
-		sh.streamMap.set(e.ClientId, upStream)
+		sh.streamMap.set(e.ClientID, upStream)
 		upStream.Run(sh.wg)
 	}
 	upStream.Send(e)
 	return nil
 }
 
+// Flush clean streams
 func (sh *StreamHandler) Flush() {
 	sh.streamMap.flush()
 	log.Print("Awaiting streams flush to end")

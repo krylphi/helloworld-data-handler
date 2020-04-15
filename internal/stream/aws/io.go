@@ -3,15 +3,16 @@ package aws
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/krylphi/helloworld-data-handler/internal/utils"
 	"log"
 	"sync"
 
 	"github.com/krylphi/helloworld-data-handler/internal/domain"
+	"github.com/krylphi/helloworld-data-handler/internal/utils"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type streamIO struct {
@@ -49,7 +50,7 @@ func (s *streamIO) Run(wg *sync.WaitGroup) {
 			if _, err = s.gzw.Write(e.Marshal()); err != nil {
 				log.Print("failed to write to stream")
 			}
-			if s.buf.Len() >= 5 * 1024 * 1024 { // 5 mb is minimum allowed chunk
+			if s.buf.Len() >= 5*1024*1024 { // 5 mb is minimum allowed chunk
 				payload := make([]byte, s.buf.Len())
 				if _, err = s.buf.Read(payload); err != nil {
 					log.Print("failed to get compressed payload")
@@ -100,14 +101,14 @@ type streamMap struct {
 }
 
 type uploadStream struct {
-	maxRetries int
-	svc *s3.S3
+	maxRetries     int
+	svc            *s3.S3
 	completedParts []*s3.CompletedPart
-	multipart *s3.CreateMultipartUploadOutput
+	multipart      *s3.CreateMultipartUploadOutput
 }
 
 func newUploadStream(session *session.Session, inp *s3.CreateMultipartUploadInput) (*uploadStream, error) {
-	svc:= s3.New(session)
+	svc := s3.New(session)
 	multipart, err := svc.CreateMultipartUpload(inp)
 	if err != nil {
 		return nil, err
@@ -120,7 +121,7 @@ func newUploadStream(session *session.Session, inp *s3.CreateMultipartUploadInpu
 	}, nil
 }
 
-func (us *uploadStream)completeMultipartUpload() (*s3.CompleteMultipartUploadOutput, error) {
+func (us *uploadStream) completeMultipartUpload() (*s3.CompleteMultipartUploadOutput, error) {
 	completeInput := &s3.CompleteMultipartUploadInput{
 		Bucket:   us.multipart.Bucket,
 		Key:      us.multipart.Key,
@@ -132,14 +133,14 @@ func (us *uploadStream)completeMultipartUpload() (*s3.CompleteMultipartUploadOut
 	return us.svc.CompleteMultipartUpload(completeInput)
 }
 
-func (us *uploadStream)uploadPart(fileBytes []byte) error {
+func (us *uploadStream) uploadPart(fileBytes []byte) error {
 	tryNum := 1
-	partNumber := len(us.completedParts)+1
+	partNumber := len(us.completedParts) + 1
 	partInput := &s3.UploadPartInput{
 		Body:          bytes.NewReader(fileBytes),
 		Bucket:        us.multipart.Bucket,
 		Key:           us.multipart.Key,
-		PartNumber:    aws.Int64(int64(len(us.completedParts)+1)),
+		PartNumber:    aws.Int64(int64(len(us.completedParts) + 1)),
 		UploadId:      us.multipart.UploadId,
 		ContentLength: aws.Int64(int64(len(fileBytes))),
 	}
@@ -165,7 +166,7 @@ func (us *uploadStream)uploadPart(fileBytes []byte) error {
 	return nil
 }
 
-func (us *uploadStream)abortMultipartUpload() error {
+func (us *uploadStream) abortMultipartUpload() error {
 	abortInput := &s3.AbortMultipartUploadInput{
 		Bucket:   us.multipart.Bucket,
 		Key:      us.multipart.Key,
@@ -174,7 +175,6 @@ func (us *uploadStream)abortMultipartUpload() error {
 	_, err := us.svc.AbortMultipartUpload(abortInput)
 	return err
 }
-
 
 func (s *streamMap) get(key int) *streamIO {
 	s.lock.RLock()

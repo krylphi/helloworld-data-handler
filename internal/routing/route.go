@@ -1,23 +1,27 @@
 package routing
 
 import (
-	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
-	"github.com/valyala/fasthttp"
 	"log"
+
+	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
+
+	"github.com/valyala/fasthttp"
 )
 
+// Router http router
 type Router struct {
 	streamHandler *aws.StreamHandler
 }
 
+// NewRouter router constructor
 func NewRouter() Router {
 	return Router{
 		streamHandler: aws.NewStreamHandler(),
 	}
 }
 
-// HttpRouter contains routing paths. Methods are being checked in respective handlers
-func (r *Router) HttpRouter(ctx *fasthttp.RequestCtx) {
+// HTTPRouter contains routing paths. Methods are being checked in respective handlers
+func (r *Router) HTTPRouter(ctx *fasthttp.RequestCtx) {
 	switch string(ctx.Path()) {
 	case "/log":
 		r.handleLog(ctx)
@@ -26,6 +30,7 @@ func (r *Router) HttpRouter(ctx *fasthttp.RequestCtx) {
 	}
 }
 
+// Shutdown shutdown router and clear stream handler
 func (r *Router) Shutdown() {
 	log.Print("Flushing stream handler")
 	r.streamHandler.Flush()
