@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/krylphi/helloworld-data-handler/internal/domain"
 	"github.com/krylphi/helloworld-data-handler/internal/stream"
@@ -20,9 +21,9 @@ type StreamHandler struct {
 	lock       chan int
 	wg         *sync.WaitGroup
 	awsSession *session.Session
-	streamMap  streamMap
+	streamMap  *stream.QueuesMap
 	bucket     string
-	next       stream.Stream
+	next       stream.Handler
 }
 
 // NewStreamHandler StreamHandler constructor
@@ -32,6 +33,11 @@ func NewStreamHandler() *StreamHandler {
 	accessSecret := utils.GetEnvDef("AWS_ACCESS_SECRET", "")
 	awsRegion := utils.GetEnvDef("AWS_REGION", "us-west-2")
 	awsBucket := utils.GetEnvDef("AWS_BUCKET", "hw-test-chat")
+	t, err := strconv.Atoi(utils.GetEnvDef("QUEUE_TIMEOUT_MIN", "60"))
+	if err != nil {
+		t = 60
+	}
+	queueTimeout := time.Minute * time.Duration(int64(t))
 	if accessKey == "" || accessSecret == "" {
 		//load default credentials
 		awsConfig = &aws.Config{
@@ -48,13 +54,10 @@ func NewStreamHandler() *StreamHandler {
 	sess := session.Must(session.NewSession(awsConfig))
 	return &StreamHandler{
 		awsSession: sess,
-		streamMap: streamMap{
-			lock:    sync.RWMutex{},
-			streams: make(map[int]*streamIO, 10),
-		},
-		wg:     &sync.WaitGroup{},
-		bucket: awsBucket,
-		lock:   make(chan int, 1),
+		streamMap:  stream.NewQueuesMap(queueTimeout),
+		wg:         &sync.WaitGroup{},
+		bucket:     awsBucket,
+		lock:       make(chan int, 1),
 	}
 }
 
@@ -66,19 +69,20 @@ func (sh *StreamHandler) Send(e *domain.Entry) error {
 	date := utils.DateFromUnixMillis(e.Timestamp)
 	key := utils.Concat("/chat/", date, "/content_logs_", date, "_", strconv.Itoa(e.ClientID))
 	sh.lock <- 1
-	upStream := sh.streamMap.get(e.ClientID)
+	upStream := sh.streamMap.GetQueue(e.ClientID)
 	if upStream == nil {
 		input := &s3.CreateMultipartUploadInput{
 			Bucket:      aws.String(sh.bucket),
 			Key:         aws.String(key),
 			ContentType: aws.String("application/gzip"),
 		}
-		s, err := newUploadStream(sh.awsSession, input)
+		s, err := NewAWSStream(sh.awsSession, input)
 		if err != nil {
 			return err
 		}
-		upStream = newStreamIO(s)
-		sh.streamMap.set(e.ClientID, upStream)
+		errorChan := make(chan error)
+		upStream = stream.NewQueue(s, errorChan)
+		sh.streamMap.AddQueue(e.ClientID, upStream, errorChan)
 		upStream.Run(sh.wg)
 	}
 	<-sh.lock
@@ -91,8 +95,8 @@ func (sh *StreamHandler) Send(e *domain.Entry) error {
 
 // Flush clean streams
 func (sh *StreamHandler) Flush() {
-	sh.streamMap.flush()
-	log.Print("Awaiting streams flush to end")
+	sh.streamMap.Flush()
+	log.Print("Awaiting streams Flush to end")
 	sh.wg.Wait()
 	log.Print("Streams flushed successfully")
 }

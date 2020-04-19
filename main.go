@@ -18,6 +18,7 @@ func main() {
 	go func() {
 		err := fasthttp.ListenAndServe(addr, router.HTTPRouter)
 		if err != nil {
+			log.Print(err.Error())
 			log.Fatal("error handling")
 		}
 	}()
