@@ -78,7 +78,10 @@ func (sh *StreamHandler) Send(e *domain.Entry) error {
 		sh.streamMap.set(e.ClientID, upStream)
 		upStream.Run(sh.wg)
 	}
-	upStream.Send(e)
+	err := upStream.Send(e)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

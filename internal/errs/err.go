@@ -13,3 +13,6 @@ var ErrInvalidContentID = errors.New("invalid content id")
 
 // ErrEmptyText empty text
 var ErrEmptyText = errors.New("empty text")
+
+// ErrServerShuttingDown server is shutting down
+var ErrServerShuttingDown = errors.New("server is shutting down")

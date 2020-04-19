@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/krylphi/helloworld-data-handler/internal/domain"
+	"github.com/krylphi/helloworld-data-handler/internal/errs"
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,8 +37,12 @@ func newStreamIO(stream *uploadStream) *streamIO {
 	}
 }
 
-func (s *streamIO) Send(e *domain.Entry) {
+func (s *streamIO) Send(e *domain.Entry) error {
+	if s.closed {
+		return errs.ErrServerShuttingDown
+	}
 	s.queue <- e
+	return nil
 }
 
 func (s *streamIO) Run(wg *sync.WaitGroup) {
@@ -60,19 +65,25 @@ func (s *streamIO) Run(wg *sync.WaitGroup) {
 				}
 			}
 		}
+		log.Printf("Finalizing... %s", *s.stream.multipart.Key)
+		log.Printf("Flushing gzip stream... %s", *s.stream.multipart.Key)
 		if err = s.gzw.Flush(); err != nil {
 			log.Print("failed to flush gzip stream")
 		}
+		log.Printf("Closing gzip stream... %s", *s.stream.multipart.Key)
 		if err = s.gzw.Close(); err != nil {
 			log.Print("failed to flush gzip stream")
 		}
 		payload := make([]byte, s.buf.Len())
+		log.Printf("Getting gzip footer... %s", *s.stream.multipart.Key)
 		if _, err = s.buf.Read(payload); err != nil {
 			log.Print("failed to get gzip footer payload")
 		}
+		log.Print("Uploading gzip footer...")
 		if err = s.stream.uploadPart(payload); err != nil {
 			log.Print("failed to upload gzip footer payload")
 		}
+		log.Printf("Completing multipart upload... %s", *s.stream.multipart.Key)
 		res, err := s.stream.completeMultipartUpload()
 		if err != nil {
 			log.Print(utils.Concat("Error completing upload of", *s.stream.multipart.Key, " due to error: ", err.Error()))
@@ -85,12 +96,14 @@ func (s *streamIO) Run(wg *sync.WaitGroup) {
 		}
 		log.Print(utils.Concat("Successfully uploaded file:", res.String()))
 		s.closed = true
+		log.Printf("Stream flushed successfully %s", *s.stream.multipart.Key)
 		s.wg.Done()
 	}()
 }
 
 func (s *streamIO) Flush() {
 	go func() {
+		s.closed = true
 		close(s.queue)
 	}()
 }

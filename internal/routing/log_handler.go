@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/krylphi/helloworld-data-handler/internal/domain"
+	"github.com/krylphi/helloworld-data-handler/internal/errs"
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
 
 	"github.com/valyala/fasthttp"
@@ -34,6 +35,10 @@ func (r *Router) handlePostLog(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		r := utils.Concat("err: ", err.Error(), "data: ", string(data))
 		log.Print(r)
+		if err == errs.ErrServerShuttingDown {
+			ctx.Error(r, fasthttp.StatusInternalServerError)
+			return
+		}
 		ctx.Error(r, fasthttp.StatusBadRequest)
 		return
 	}
