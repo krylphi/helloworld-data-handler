@@ -17,6 +17,7 @@ import (
 
 // StreamHandler handler for incoming data and passing them to respective streams
 type StreamHandler struct {
+	lock       chan int
 	wg         *sync.WaitGroup
 	awsSession *session.Session
 	streamMap  streamMap
@@ -53,6 +54,7 @@ func NewStreamHandler() *StreamHandler {
 		},
 		wg:     &sync.WaitGroup{},
 		bucket: awsBucket,
+		lock:   make(chan int, 1),
 	}
 }
 
@@ -63,6 +65,7 @@ func (sh *StreamHandler) Send(e *domain.Entry) error {
 	}
 	date := utils.DateFromUnixMillis(e.Timestamp)
 	key := utils.Concat("/chat/", date, "/content_logs_", date, "_", strconv.Itoa(e.ClientID))
+	sh.lock <- 1
 	upStream := sh.streamMap.get(e.ClientID)
 	if upStream == nil {
 		input := &s3.CreateMultipartUploadInput{
@@ -78,6 +81,7 @@ func (sh *StreamHandler) Send(e *domain.Entry) error {
 		sh.streamMap.set(e.ClientID, upStream)
 		upStream.Run(sh.wg)
 	}
+	<-sh.lock
 	err := upStream.Send(e)
 	if err != nil {
 		return err

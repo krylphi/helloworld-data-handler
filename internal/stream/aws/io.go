@@ -54,34 +54,44 @@ func (s *streamIO) Run(wg *sync.WaitGroup) {
 			//log.Print(utils.Concat("New entity:", string(e.Marshal())))
 			if _, err = s.gzw.Write(e.Marshal()); err != nil {
 				log.Print("failed to write to stream")
+				continue
 			}
-			if s.buf.Len() >= 5*1024*1024 { // 5 mb is minimum allowed chunk
+			if s.buf.Len() >= utils.MinAWSChunk {
 				payload := make([]byte, s.buf.Len())
 				if _, err = s.buf.Read(payload); err != nil {
 					log.Print("failed to get compressed payload")
+					continue
 				}
 				if err = s.stream.uploadPart(payload); err != nil {
 					log.Print("failed to upload compressed payload")
+					continue
 				}
+				//if len(s.stream.completedParts) >= 819 {
+				//	s.Flush()
+				//}
 			}
 		}
 		log.Printf("Finalizing... %s", *s.stream.multipart.Key)
 		log.Printf("Flushing gzip stream... %s", *s.stream.multipart.Key)
 		if err = s.gzw.Flush(); err != nil {
 			log.Print("failed to flush gzip stream")
+			return
 		}
 		log.Printf("Closing gzip stream... %s", *s.stream.multipart.Key)
 		if err = s.gzw.Close(); err != nil {
 			log.Print("failed to flush gzip stream")
+			return
 		}
 		payload := make([]byte, s.buf.Len())
 		log.Printf("Getting gzip footer... %s", *s.stream.multipart.Key)
 		if _, err = s.buf.Read(payload); err != nil {
 			log.Print("failed to get gzip footer payload")
+			return
 		}
 		log.Print("Uploading gzip footer...")
 		if err = s.stream.uploadPart(payload); err != nil {
 			log.Print("failed to upload gzip footer payload")
+			return
 		}
 		log.Printf("Completing multipart upload... %s", *s.stream.multipart.Key)
 		res, err := s.stream.completeMultipartUpload()
@@ -93,9 +103,9 @@ func (s *streamIO) Run(wg *sync.WaitGroup) {
 			} else {
 				log.Print(utils.Concat("Upload aborted:", *s.stream.multipart.Key))
 			}
+			return
 		}
 		log.Print(utils.Concat("Successfully uploaded file:", res.String()))
-		s.closed = true
 		log.Printf("Stream flushed successfully %s", *s.stream.multipart.Key)
 		s.wg.Done()
 	}()
@@ -135,6 +145,9 @@ func newUploadStream(session *session.Session, inp *s3.CreateMultipartUploadInpu
 }
 
 func (us *uploadStream) completeMultipartUpload() (*s3.CompleteMultipartUploadOutput, error) {
+	//if true {
+	//	return &s3.CompleteMultipartUploadOutput{}, nil
+	//}
 	completeInput := &s3.CompleteMultipartUploadInput{
 		Bucket:   us.multipart.Bucket,
 		Key:      us.multipart.Key,
@@ -147,6 +160,7 @@ func (us *uploadStream) completeMultipartUpload() (*s3.CompleteMultipartUploadOu
 }
 
 func (us *uploadStream) uploadPart(fileBytes []byte) error {
+
 	tryNum := 1
 	partNumber := len(us.completedParts) + 1
 	partInput := &s3.UploadPartInput{
@@ -157,6 +171,14 @@ func (us *uploadStream) uploadPart(fileBytes []byte) error {
 		UploadId:      us.multipart.UploadId,
 		ContentLength: aws.Int64(int64(len(fileBytes))),
 	}
+
+	//if true {
+	//	us.completedParts = append(us.completedParts, &s3.CompletedPart{
+	//		ETag:       aws.String("ETAG"),
+	//		PartNumber: aws.Int64(int64(partNumber)),
+	//	})
+	//	return nil
+	//}
 
 	for tryNum <= us.maxRetries {
 		uploadResult, err := us.svc.UploadPart(partInput)
