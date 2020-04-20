@@ -47,7 +47,7 @@ func newAzureBlobStream(path string, errChan chan error) (stream.Stream, error) 
 	if err != nil {
 		return nil, fmt.Errorf("can't create azure credentials: %w", err)
 	}
-	res, err := url.Parse(fmt.Sprintf("https://%aStream.blob.core.windows.net/%aStream", account, path))
+	res, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s", account, path))
 	if err != nil {
 		return nil, fmt.Errorf("can't parse azure container url: %w", err)
 	}
