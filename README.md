@@ -26,4 +26,4 @@ Full performance benchmarks are in th benchmark folder
 - server accepts approx. 15000-30000 queries per second with 0 KO rate and 86% responses in less < 800 ms under stress load (see Gatling benchmarks).
 
 ## Logged time
-It took aprox. 25 hours to implement the server, including aprox 5-7 hours research.
+It took aprox. 27 hours to implement the server, including aprox 5-7 hours research.

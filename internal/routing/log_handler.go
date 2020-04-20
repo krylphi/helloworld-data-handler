@@ -35,7 +35,7 @@ func (r *Router) handlePostLog(ctx *fasthttp.RequestCtx) {
 	if err != nil {
 		r := utils.Concat("err: ", err.Error(), "data: ", string(data))
 		log.Print(r)
-		if err == errs.ErrServerShuttingDown {
+		if err == errs.ErrQueueIsClosed {
 			ctx.Error(r, fasthttp.StatusInternalServerError)
 			return
 		}

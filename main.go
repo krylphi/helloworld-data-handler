@@ -7,13 +7,14 @@ import (
 	"syscall"
 
 	"github.com/krylphi/helloworld-data-handler/internal/routing"
+	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
 
 	"github.com/valyala/fasthttp"
 )
 
 func main() {
-	router := routing.NewRouter()
+	router := routing.NewRouter(aws.NewStreamHandler())
 	addr := utils.Concat(utils.GetEnvDef("ADDR", "0.0.0.0"), ":", utils.GetEnvDef("PORT", "8902"))
 	go func() {
 		err := fasthttp.ListenAndServe(addr, router.HTTPRouter)

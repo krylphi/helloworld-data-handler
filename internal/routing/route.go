@@ -3,20 +3,20 @@ package routing
 import (
 	"log"
 
-	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
-
 	"github.com/valyala/fasthttp"
+
+	"github.com/krylphi/helloworld-data-handler/internal/stream"
 )
 
 // Router http router
 type Router struct {
-	streamHandler *aws.StreamHandler
+	streamHandler stream.Handler
 }
 
 // NewRouter router constructor
-func NewRouter() Router {
+func NewRouter(handler stream.Handler) Router {
 	return Router{
-		streamHandler: aws.NewStreamHandler(),
+		streamHandler: handler,
 	}
 }
 
