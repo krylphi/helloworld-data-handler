@@ -36,7 +36,7 @@ func TestEntry_Marshal(t *testing.T) {
 				ContentID: tt.fields.ContentID,
 				Timestamp: tt.fields.Timestamp,
 				ClientID:  tt.fields.ClientID,
-				Text:      tt.fields.Text,
+				Text:      []byte(tt.fields.Text),
 			}
 			if got := e.Marshal(); !reflect.DeepEqual(got, tt.want) {
 				t.Fatalf("Marshal() = %v, want %v", got, tt.want)
@@ -65,7 +65,8 @@ func TestParseEntry(t *testing.T) {
 				ContentID: 1,
 				Timestamp: 1586846680064,
 				ClientID:  1,
-				Text:      "hello world",
+				Text:      []byte("hello world"),
+				data: []byte("{\"text\": \"hello world\", \"content_id\": 1, \"client_id\":1, \"timestamp\": 1586846680064}\r\n"),
 			},
 		},
 		{

@@ -1,12 +1,10 @@
 package domain
 
 import (
-	"strconv"
-
 	"github.com/krylphi/helloworld-data-handler/internal/errs"
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
-
 	"github.com/valyala/fastjson"
+	"strconv"
 )
 
 // Entry log entry
@@ -18,7 +16,9 @@ type Entry struct {
 	//ClientID id of the sender
 	ClientID int `json:"client_id"`
 	// Text message text
-	Text string `json:"text"`
+	Text []byte `json:"text"`
+
+	data []byte
 }
 
 const maxMillis = 9999999999999
@@ -47,18 +47,22 @@ func ParseEntry(json []byte) (*Entry, error) {
 	if len(s) == 0 {
 		return nil, errs.ErrEmptyText
 	}
-	res.Text = string(s)
+	res.Text = s
+	res.data = append(json, utils.CRLF...)
 	return res, nil
 }
 
 // Marshal marshals entry to json. We do not use json.Marshal because it's slower
 func (e *Entry) Marshal() []byte {
-	return []byte(utils.Concat(
-		`{"text":"`, e.Text,
-		`","content_id":`, strconv.FormatInt(e.ContentID, 10),
-		`,"client_id":`, strconv.Itoa(e.ClientID),
-		`,"timestamp":`, strconv.FormatInt(e.Timestamp, 10),
-		`}`, "\r\n"))
+	if len(e.data) == 0 {
+		return []byte(utils.Concat(
+			`{"text":"`, string(e.Text),
+			`","content_id":`, strconv.FormatInt(e.ContentID, 10),
+			`,"client_id":`, strconv.Itoa(e.ClientID),
+			`,"timestamp":`, strconv.FormatInt(e.Timestamp, 10),
+			`}`, "\r\n"))
+	}
+	return e.data
 }
 
 // ValidateEntry validates request entry
