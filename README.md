@@ -10,13 +10,17 @@
 - PORT - HTTP API port (default=8902) (optional)
 - QUEUE_TIMEOUT_MIN - queue timeout before flushing (default=60) (optional)
 - NO_UPLOAD - disable AWS uploading (_debug_) (default=0) (optional)
-- AWS_ACCESS_KEY - aws Access Key ID (**required**) - aws
-- AWS_ACCESS_SECRET - aws Secret Access Key (**required**) -aws
-- AWS_REGION - aws region (**required**) -aws
-- AWS_BUCKET - aws bucket (**required**)  -aws
-- AZURE_ACC - azure username (**required**) - azure
-- AZURE_KEY - azure access key (**required**) - azure
-- AZURE_CONTAINER - azure container (**required**) - azure 
+
+AWS:
+- AWS_ACCESS_KEY - aws Access Key ID (**required**)
+- AWS_ACCESS_SECRET - aws Secret Access Key (**required**)
+- AWS_REGION - aws region (**required**)
+- AWS_BUCKET - aws bucket (**required**)
+
+AZURE:
+- AZURE_ACC - azure username (**required**)
+- AZURE_KEY - azure access key (**required**)
+- AZURE_CONTAINER - azure container (**required**)
 
 ## Routes
 POST /log - send message
