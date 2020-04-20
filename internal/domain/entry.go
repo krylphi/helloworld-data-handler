@@ -43,10 +43,11 @@ func ParseEntry(json []byte) (*Entry, error) {
 	if res.ContentID == 0 {
 		return nil, errs.ErrInvalidContentID
 	}
-	res.Text = string(v.GetStringBytes("text"))
-	if res.Text == "" {
+	s := v.GetStringBytes("text")
+	if len(s) == 0 {
 		return nil, errs.ErrEmptyText
 	}
+	res.Text = string(s)
 	return res, nil
 }
 
@@ -63,7 +64,7 @@ func (e *Entry) Marshal() []byte {
 // ValidateEntry validates request entry
 func ValidateEntry(json []byte) error {
 	var p fastjson.Parser
-	v, err := p.Parse(string(json))
+	v, err := p.ParseBytes(json)
 	if err != nil {
 		return err
 	}
@@ -79,8 +80,8 @@ func ValidateEntry(json []byte) error {
 	if i64 == 0 {
 		return errs.ErrInvalidContentID
 	}
-	s := string(v.GetStringBytes("text"))
-	if s == "" {
+	s := v.GetStringBytes("text")
+	if len(s) == 0 {
 		return errs.ErrEmptyText
 	}
 	return nil

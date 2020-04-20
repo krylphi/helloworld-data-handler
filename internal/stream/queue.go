@@ -41,7 +41,7 @@ func (q *UploadQueue) Send(e *domain.Entry) error {
 func (q *UploadQueue) Run(wg *sync.WaitGroup) {
 	q.wg = wg
 	q.wg.Add(1)
-	var err error = nil
+	var err error
 	go func() {
 		for e := range q.queue {
 			if err = q.stream.Write(e.Marshal()); err != nil {
