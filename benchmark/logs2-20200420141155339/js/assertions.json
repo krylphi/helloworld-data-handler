@@ -1,0 +1,11 @@
+{
+  "simulation": "stream.s3.Logs2",
+  "simulationId": "logs2",
+  "start": 1587391915339,
+  "description": "",
+  "scenarios": [
+    "Logs"
+  ],
+  "assertions": [
+  ]
+}
