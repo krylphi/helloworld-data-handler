@@ -1,10 +1,13 @@
 package main
 
 import (
+	"github.com/krylphi/helloworld-data-handler/internal/stream"
 	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
+	"github.com/krylphi/helloworld-data-handler/internal/stream/azure"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/krylphi/helloworld-data-handler/internal/routing"
@@ -14,7 +17,23 @@ import (
 )
 
 func main() {
-	router := routing.NewRouter(aws.NewStreamHandler())
+	storage := strings.ToLower(utils.GetEnvDef("STORAGE", "aws"))
+	var handler stream.Handler
+	switch storage {
+	case "aws":
+		handler = aws.NewStreamHandler()
+	case "azure":
+		errorsChan := make(chan error)
+		azure.NewStreamHandler(errorsChan)
+		go func() {
+			for err := range errorsChan {
+				log.Println(err)
+			}
+		}()
+	default:
+		handler = aws.NewStreamHandler()
+	}
+	router := routing.NewRouter(handler)
 	addr := utils.Concat(utils.GetEnvDef("ADDR", "0.0.0.0"), ":", utils.GetEnvDef("PORT", "8902"))
 	go func() {
 		err := fasthttp.ListenAndServe(addr, router.HTTPRouter)

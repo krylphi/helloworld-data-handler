@@ -25,5 +25,8 @@ var ErrMaxFileSize = errors.New("maximum file size reached")
 // ErrEmptyAzureAcc empty AZURE_ACC env var
 var ErrEmptyAzureAcc = errors.New("empty AZURE_ACC env var")
 
+// ErrEmptyAzureContainer empty AZURE_CONTAINER env var
+var ErrEmptyAzureContainer = errors.New("empty AZURE_CONTAINER env var")
+
 // ErrEmptyAzureKey empty AZURE_KEY env var
 var ErrEmptyAzureKey = errors.New("empty AZURE_KEY env var")

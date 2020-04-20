@@ -40,7 +40,7 @@ func (sh *StreamHandler) Send(e *domain.Entry) error {
 		go sh.next.Send(e)
 	}
 	date := utils.DateFromUnixMillis(e.Timestamp)
-	key := utils.Concat("/chat/", date, "/content_logs_", date, "_", strconv.Itoa(e.ClientID))
+	key := utils.Concat("chat/", date, "/content_logs_", date, "_", strconv.Itoa(e.ClientID))
 	sh.lock <- 1
 	upStream := sh.streamMap.GetQueue(e.ClientID)
 	if upStream == nil {

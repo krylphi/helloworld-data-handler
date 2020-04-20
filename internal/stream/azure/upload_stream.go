@@ -35,10 +35,13 @@ func NewStreamHandler(errChan chan error) *stream.StreamHandler {
 func newAzureBlobStream(path string, errChan chan error) (stream.Stream, error) {
 	account := utils.GetEnvDef("AZURE_ACC", "")
 	accessKey := utils.GetEnvDef("AZURE_KEY", "")
+	container := utils.GetEnvDef("AZURE_CONTAINER", "")
 	if account == "" {
 		return nil, errs.ErrEmptyAzureAcc
 	}
-
+	if container == "" {
+		return nil, errs.ErrEmptyAzureContainer
+	}
 	if accessKey == "" {
 		return nil, errs.ErrEmptyAzureKey
 	}
@@ -47,7 +50,7 @@ func newAzureBlobStream(path string, errChan chan error) (stream.Stream, error) 
 	if err != nil {
 		return nil, fmt.Errorf("can't create azure credentials: %w", err)
 	}
-	res, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s", account, path))
+	res, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s", account, container))
 	if err != nil {
 		return nil, fmt.Errorf("can't parse azure container url: %w", err)
 	}
@@ -64,7 +67,8 @@ func newAzureBlobStream(path string, errChan chan error) (stream.Stream, error) 
 	blobURL := containerURL.NewBlockBlobURL(path)
 	aStream.wg.Add(1)
 	go func() {
-		_, err := azblob.UploadStreamToBlockBlob(context.Background(), aStream, blobURL, azblob.UploadStreamToBlockBlobOptions{
+		ctx := context.Background()
+		_, err := azblob.UploadStreamToBlockBlob(ctx, aStream, blobURL, azblob.UploadStreamToBlockBlobOptions{
 			BufferSize: utils.MinDataChunk,
 			MaxBuffers: 819,
 			BlobHTTPHeaders: azblob.BlobHTTPHeaders{
@@ -116,10 +120,10 @@ func (s *azureStream) Flush() (err error) {
 		log.Print("failed to Flush gzip stream")
 		return
 	}
-	s.wg.Wait()
 	s.mx.Lock()
-	defer s.mx.Unlock()
 	s.closed = true
+	s.mx.Unlock()
+	s.wg.Wait()
 	return
 }
 
