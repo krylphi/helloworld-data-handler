@@ -19,7 +19,7 @@ type UploadQueue struct {
 }
 
 // NewQueue UploadQueue constructor
-func NewQueue(stream Stream, errChan chan error) *UploadQueue {
+func NewQueue(stream Stream, errChan chan error) Queue {
 	return &UploadQueue{
 		queue:   make(chan *domain.Entry, 10),
 		errChan: errChan,

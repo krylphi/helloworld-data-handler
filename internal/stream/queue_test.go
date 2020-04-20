@@ -12,7 +12,7 @@ import (
 	"github.com/krylphi/helloworld-data-handler/internal/mock"
 )
 
-func initQueue(t *testing.T) (*UploadQueue, *gomock.Controller, *mock.MockStream, *sync.WaitGroup, chan error) {
+func initQueue(t *testing.T) (Queue, *gomock.Controller, *mock.MockStream, *sync.WaitGroup, chan error) {
 	mockCtrl := gomock.NewController(t)
 	stream := mock.NewMockStream(mockCtrl)
 	ch := make(chan error)
@@ -82,7 +82,7 @@ func TestUploadQueue_pushError(t *testing.T) {
 			t.Fatalf("IsClosed() = %v, want %v", got, true)
 		}
 		err := errors.New("some err")
-		go q.pushError(err)
+		go q.(*UploadQueue).pushError(err)
 		select {
 		case <-time.After(3 * time.Second):
 			t.Fatalf("Did not recieve error after 3 seconds")

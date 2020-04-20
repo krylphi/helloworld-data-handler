@@ -19,13 +19,19 @@ func initQueuesMapMocks(t *testing.T) (*mock.MockQueue, *mock.MockStream, *gomoc
 	q := mock.NewMockQueue(mockCtrl)
 	wg := &sync.WaitGroup{}
 	q.EXPECT().Run(wg).Times(1)
-	q.Run(wg)
 	return q, stream, mockCtrl, wg, ch
 }
 
 func TestQueuesMap_AddQueue(t *testing.T) {
 	qm := initQueuesMap(10 * time.Second)
-	_, s, c, wg, _ := initQueuesMapMocks(t)
+	var q *mock.MockQueue
+	var s *mock.MockStream
+	var c *gomock.Controller
+	var wg *sync.WaitGroup
+	q, s, c, wg, _ = initQueuesMapMocks(t)
+	qm.QueueGen = func(stream Stream, errChan chan error) Queue {
+		return q
+	}
 	t.Run("AddQueue", func(t *testing.T) {
 		qm.AddQueue(1, s, wg)
 		if len(qm.streams) < 1 {
@@ -37,25 +43,43 @@ func TestQueuesMap_AddQueue(t *testing.T) {
 
 func TestQueuesMap_Flush(t *testing.T) {
 	qm := initQueuesMap(10 * time.Second)
-	_, s, c, wg, _ := initQueuesMapMocks(t)
-	_, s2, c2, wg2, _ := initQueuesMapMocks(t)
+	qm.QueueGen = func(stream Stream, errChan chan error) Queue {
+		q, _, _, _, _ := initQueuesMapMocks(t)
+		return q
+	}
+	_, s, _, wg, _ := initQueuesMapMocks(t)
+	_, s2, _, _, _ := initQueuesMapMocks(t)
 	t.Run("QueuesMap_Flush", func(t *testing.T) {
-		qm.AddQueue(1, s, wg)
-		qm.AddQueue(2, s2, wg2)
+		q1 := qm.AddQueue(1, s, wg)
+		q2 := qm.AddQueue(2, s2, wg)
 		if len(qm.streams) < 2 {
 			t.Fatalf("Queues was not added")
 		}
-		//q.EXPECT().Flush().Times(1)
-		//q2.EXPECT().Flush().Times(1)
+		q1.(*mock.MockQueue).EXPECT().Flush().Times(1)
+		q2.(*mock.MockQueue).EXPECT().Flush().Times(1)
 		qm.Flush()
+		//wg.Wait()
+		//if !q1.IsClosed() {
+		//	t.Fatalf("Queues was not closed")
+		//}
+		//if !q2.IsClosed() {
+		//	t.Fatalf("Queues was not closed")
+		//}
 	})
-	c2.Finish()
-	c.Finish()
+	//c2.Finish()
+	//c.Finish()
 }
 
 func TestQueuesMap_GetQueue(t *testing.T) {
 	qm := initQueuesMap(10 * time.Second)
-	_, s, c, wg, _ := initQueuesMapMocks(t)
+	var q *mock.MockQueue
+	var s *mock.MockStream
+	var c *gomock.Controller
+	var wg *sync.WaitGroup
+	q, s, c, wg, _ = initQueuesMapMocks(t)
+	qm.QueueGen = func(stream Stream, errChan chan error) Queue {
+		return q
+	}
 	t.Run("Empty", func(t *testing.T) {
 		res := qm.GetQueue(1)
 		if res != nil {
@@ -65,6 +89,7 @@ func TestQueuesMap_GetQueue(t *testing.T) {
 
 	t.Run("Not Empty", func(t *testing.T) {
 		qm.AddQueue(1, s, wg)
+		q.EXPECT().IsClosed().Times(1)
 		res := qm.GetQueue(1)
 		if res == nil {
 			t.Fatalf("Queues is empty")
@@ -75,7 +100,14 @@ func TestQueuesMap_GetQueue(t *testing.T) {
 
 func TestQueuesMap_RemoveQueue(t *testing.T) {
 	qm := initQueuesMap(10 * time.Second)
-	_, s, c, wg, _ := initQueuesMapMocks(t)
+	var q *mock.MockQueue
+	var s *mock.MockStream
+	var c *gomock.Controller
+	var wg *sync.WaitGroup
+	q, s, c, wg, _ = initQueuesMapMocks(t)
+	qm.QueueGen = func(stream Stream, errChan chan error) Queue {
+		return q
+	}
 	t.Run("Empty", func(t *testing.T) {
 		before := len(qm.streams)
 		qm.RemoveQueue(1)
@@ -86,6 +118,8 @@ func TestQueuesMap_RemoveQueue(t *testing.T) {
 
 	t.Run("Not Empty", func(t *testing.T) {
 		qm.AddQueue(1, s, wg)
+		first := q.EXPECT().IsClosed().Times(1)
+		q.EXPECT().Flush().Times(1).After(first)
 		qm.RemoveQueue(1)
 		res := qm.GetQueue(1)
 		if res != nil {
