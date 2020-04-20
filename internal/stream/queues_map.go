@@ -11,7 +11,7 @@ type QueuesMap struct {
 	lock         sync.RWMutex
 	queueTimeout time.Duration
 	streams      map[int]Queue
-	QueueGen func(stream Stream, errChan chan error) Queue
+	QueueGen     func(stream Stream, errChan chan error) Queue
 }
 
 // NewQueuesMap QueuesMap constructor
@@ -20,7 +20,7 @@ func NewQueuesMap(queueTimeout time.Duration) *QueuesMap {
 		lock:         sync.RWMutex{},
 		queueTimeout: queueTimeout,
 		streams:      make(map[int]Queue, 10),
-		QueueGen: 	  NewQueue,
+		QueueGen:     NewQueue,
 	}
 }
 

@@ -18,11 +18,11 @@ import (
 )
 
 type azureStream struct {
-	mx sync.Mutex
+	mx           sync.Mutex
 	containerURL azblob.ContainerURL
 	buf          *bytes.Buffer
 	gzw          *gzip.Writer
-	wg sync.WaitGroup
+	wg           sync.WaitGroup
 	closed       bool
 }
 
@@ -59,10 +59,10 @@ func newAzureBlobStream(path string, errChan chan error) (stream.Stream, error) 
 	buf := &bytes.Buffer{}
 	gzw := gzip.NewWriter(buf)
 	aStream := &azureStream{
-		buf: buf,
-		gzw: gzw,
+		buf:          buf,
+		gzw:          gzw,
 		containerURL: containerURL,
-		wg: sync.WaitGroup{},
+		wg:           sync.WaitGroup{},
 	}
 	blobURL := containerURL.NewBlockBlobURL(path)
 	aStream.wg.Add(1)

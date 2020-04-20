@@ -10,7 +10,7 @@ import (
 
 // UploadQueue queue incoming data for uploader
 type UploadQueue struct {
-	mx sync.Mutex
+	mx      sync.Mutex
 	queue   chan *domain.Entry
 	errChan chan error
 	closed  bool

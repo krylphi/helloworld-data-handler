@@ -16,11 +16,11 @@ type StreamHandler struct {
 	wg        *sync.WaitGroup
 	streamMap *QueuesMap
 	next      Handler
-	streamGen func(filename string)(Stream, error)
+	streamGen func(filename string) (Stream, error)
 }
 
 // NewStreamHandler StreamHandler constructor
-func NewStreamHandler(streamGen func(filename string)(Stream, error)) *StreamHandler {
+func NewStreamHandler(streamGen func(filename string) (Stream, error)) *StreamHandler {
 	t, err := strconv.Atoi(utils.GetEnvDef("QUEUE_TIMEOUT_MIN", "60"))
 	if err != nil {
 		t = 60
