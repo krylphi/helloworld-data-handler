@@ -3,11 +3,12 @@ package routing
 import (
 	"log"
 
+	"github.com/valyala/fasthttp"
+
 	"github.com/krylphi/helloworld-data-handler/internal/domain"
 	"github.com/krylphi/helloworld-data-handler/internal/errs"
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
 
-	"github.com/valyala/fasthttp"
 )
 
 func (r *Router) handleLog(ctx *fasthttp.RequestCtx) {

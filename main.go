@@ -1,19 +1,19 @@
 package main
 
 import (
-	"github.com/krylphi/helloworld-data-handler/internal/stream"
-	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
-	"github.com/krylphi/helloworld-data-handler/internal/stream/azure"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
-	"github.com/krylphi/helloworld-data-handler/internal/routing"
-	"github.com/krylphi/helloworld-data-handler/internal/utils"
-
 	"github.com/valyala/fasthttp"
+
+	"github.com/krylphi/helloworld-data-handler/internal/routing"
+	"github.com/krylphi/helloworld-data-handler/internal/stream"
+	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
+	"github.com/krylphi/helloworld-data-handler/internal/stream/azure"
+	"github.com/krylphi/helloworld-data-handler/internal/utils"
 )
 
 func main() {

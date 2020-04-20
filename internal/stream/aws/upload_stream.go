@@ -3,16 +3,17 @@ package aws
 import (
 	"bytes"
 	"compress/gzip"
+	"log"
+
+	"github.com/krylphi/helloworld-data-handler/internal/errs"
+	"github.com/krylphi/helloworld-data-handler/internal/stream"
+	"github.com/krylphi/helloworld-data-handler/internal/utils"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/krylphi/helloworld-data-handler/internal/errs"
-	"github.com/krylphi/helloworld-data-handler/internal/stream"
-	"log"
-
-	"github.com/krylphi/helloworld-data-handler/internal/utils"
 )
 
 // awsStream is an aws upload stream
