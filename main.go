@@ -1,13 +1,13 @@
 package main
 
 import (
+	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/krylphi/helloworld-data-handler/internal/routing"
-	"github.com/krylphi/helloworld-data-handler/internal/stream/aws"
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
 
 	"github.com/valyala/fasthttp"

@@ -39,22 +39,26 @@ func (s *QueuesMap) GetQueue(id int) Queue {
 }
 
 // AddQueue add new queue to map
-func (s *QueuesMap) AddQueue(id int, stream Queue, errChan chan error) {
+func (s *QueuesMap) AddQueue(id int, stream Stream, wg *sync.WaitGroup) Queue {
+	errorChan := make(chan error)
 	go func() {
 		finalize := func() {
-			close(errChan)
+			close(errorChan)
 			s.RemoveQueue(id)
 		}
 		select {
-		case <-errChan:
+		case <-errorChan:
 			finalize()
 		case <-time.After(s.queueTimeout):
 			finalize()
 		}
 	}()
 	s.lock.Lock()
-	s.streams[id] = stream
-	s.lock.Unlock()
+	defer s.lock.Unlock()
+	upStream := NewQueue(stream, errorChan)
+	upStream.Run(wg)
+	s.streams[id] = upStream
+	return upStream
 }
 
 // RemoveQueue removes queue from map

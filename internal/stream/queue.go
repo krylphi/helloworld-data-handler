@@ -10,6 +10,7 @@ import (
 
 // UploadQueue queue incoming data for uploader
 type UploadQueue struct {
+	mx sync.Mutex
 	queue   chan *domain.Entry
 	errChan chan error
 	closed  bool
@@ -57,7 +58,9 @@ func (q *UploadQueue) Run(wg *sync.WaitGroup) {
 
 // Flush flush the data
 func (q *UploadQueue) Flush() {
+	q.mx.Lock()
 	go func() {
+		defer q.mx.Unlock()
 		q.closed = true
 		close(q.queue)
 	}()
@@ -65,6 +68,8 @@ func (q *UploadQueue) Flush() {
 
 // IsClosed returns queue status
 func (q *UploadQueue) IsClosed() bool {
+	q.mx.Lock()
+	defer q.mx.Unlock()
 	return q.closed
 }
 

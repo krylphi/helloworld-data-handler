@@ -21,3 +21,9 @@ var ErrServerShuttingDown = errors.New("server is shutting down")
 var ErrQueueIsClosed = errors.New("uploading queue is closed")
 
 var ErrMaxFileSize = errors.New("maximum file size reached")
+
+// ErrEmptyAzureAcc empty AZURE_ACC env var
+var ErrEmptyAzureAcc = errors.New("empty AZURE_ACC env var")
+
+// ErrEmptyAzureKey empty AZURE_KEY env var
+var ErrEmptyAzureKey = errors.New("empty AZURE_KEY env var")

@@ -3,19 +3,20 @@ package aws
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/krylphi/helloworld-data-handler/internal/errs"
-	"log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/krylphi/helloworld-data-handler/internal/errs"
+	"github.com/krylphi/helloworld-data-handler/internal/stream"
+	"log"
 
 	"github.com/krylphi/helloworld-data-handler/internal/utils"
 )
 
-// Stream is an aws upload stream
-type Stream struct {
+// awsStream is an aws upload stream
+type awsStream struct {
 	debug          bool
 	buf            *bytes.Buffer
 	gzw            *gzip.Writer
@@ -25,16 +26,46 @@ type Stream struct {
 	multipart      *s3.CreateMultipartUploadOutput
 }
 
-// NewAWSStream Stream constructor
-func NewAWSStream(session *session.Session, inp *s3.CreateMultipartUploadInput) (*Stream, error) {
-	svc := s3.New(session)
-	multipart, err := svc.CreateMultipartUpload(inp)
+// NewStreamHandler returns new stream handler for AWS
+func NewStreamHandler() *stream.StreamHandler {
+	return stream.NewStreamHandler(newAWSStream)
+}
+
+// newAWSStream awsStream constructor
+func newAWSStream(key string) (stream.Stream, error) {
+	var awsConfig *aws.Config
+	accessKey := utils.GetEnvDef("AWS_ACCESS_KEY", "")
+	accessSecret := utils.GetEnvDef("AWS_ACCESS_SECRET", "")
+	awsRegion := utils.GetEnvDef("AWS_REGION", "us-west-2")
+	awsBucket := utils.GetEnvDef("AWS_BUCKET", "hw-test-chat")
+	if accessKey == "" || accessSecret == "" {
+		//load default credentials
+		awsConfig = &aws.Config{
+			Region: aws.String(awsRegion),
+		}
+	} else {
+		awsConfig = &aws.Config{
+			Region:      aws.String(awsRegion),
+			Credentials: credentials.NewStaticCredentials(accessKey, accessSecret, ""),
+		}
+	}
+
+	// The session the S3 Uploader will use
+	sess := session.Must(session.NewSession(awsConfig))
+
+	svc := s3.New(sess)
+	input := &s3.CreateMultipartUploadInput{
+		Bucket:      aws.String(awsBucket),
+		Key:         aws.String(key),
+		ContentType: aws.String("application/gzip"),
+	}
+	multipart, err := svc.CreateMultipartUpload(input)
 	if err != nil {
 		return nil, err
 	}
 	buf := &bytes.Buffer{}
 	gzw := gzip.NewWriter(buf)
-	return &Stream{
+	return &awsStream{
 		debug:          utils.GetEnvDef("NO_UPLOAD", "0") == "1",
 		buf:            buf,
 		gzw:            gzw,
@@ -46,12 +77,12 @@ func NewAWSStream(session *session.Session, inp *s3.CreateMultipartUploadInput) 
 }
 
 // Write write byte data to stream
-func (us *Stream) Write(data []byte) (err error) {
+func (us *awsStream) Write(data []byte) (err error) {
 	if _, err = us.gzw.Write(data); err != nil {
 		log.Print("failed to write to stream")
 		return err
 	}
-	if us.buf.Len() >= utils.MinAWSChunk {
+	if us.buf.Len() >= utils.MinDataChunk {
 		payload := make([]byte, us.buf.Len())
 		if _, err = us.buf.Read(payload); err != nil {
 			log.Print("failed to get compressed payload")
@@ -74,7 +105,7 @@ func (us *Stream) Write(data []byte) (err error) {
 }
 
 // Flush attempt to flush stream
-func (us *Stream) Flush() (err error) {
+func (us *awsStream) Flush() (err error) {
 	log.Printf("Finalizing... %s", *us.multipart.Key)
 	log.Printf("Flushing gzip stream... %s", *us.multipart.Key)
 	if err = us.gzw.Flush(); err != nil {
@@ -110,11 +141,11 @@ func (us *Stream) Flush() (err error) {
 		return
 	}
 	log.Print(utils.Concat("Successfully uploaded file:", res.String()))
-	log.Printf("Stream flushed successfully %s", *us.multipart.Key)
+	log.Printf("awsStream flushed successfully %s", *us.multipart.Key)
 	return
 }
 
-func (us *Stream) completeMultipartUpload() (*s3.CompleteMultipartUploadOutput, error) {
+func (us *awsStream) completeMultipartUpload() (*s3.CompleteMultipartUploadOutput, error) {
 	if us.debug {
 		return &s3.CompleteMultipartUploadOutput{}, nil
 	}
@@ -129,7 +160,7 @@ func (us *Stream) completeMultipartUpload() (*s3.CompleteMultipartUploadOutput, 
 	return us.svc.CompleteMultipartUpload(completeInput)
 }
 
-func (us *Stream) uploadPart(fileBytes []byte) error {
+func (us *awsStream) uploadPart(fileBytes []byte) error {
 	tryNum := 1
 	partNumber := len(us.completedParts) + 1
 	partInput := &s3.UploadPartInput{
@@ -170,7 +201,7 @@ func (us *Stream) uploadPart(fileBytes []byte) error {
 	return nil
 }
 
-func (us *Stream) abortMultipartUpload() error {
+func (us *awsStream) abortMultipartUpload() error {
 	abortInput := &s3.AbortMultipartUploadInput{
 		Bucket:   us.multipart.Bucket,
 		Key:      us.multipart.Key,
