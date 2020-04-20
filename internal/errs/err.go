@@ -19,3 +19,5 @@ var ErrServerShuttingDown = errors.New("server is shutting down")
 
 // ErrQueueIsClosed empty text
 var ErrQueueIsClosed = errors.New("uploading queue is closed")
+
+var ErrMaxFileSize = errors.New("maximum file size reached")

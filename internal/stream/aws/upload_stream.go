@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/krylphi/helloworld-data-handler/internal/errs"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -61,8 +62,12 @@ func (us *Stream) Write(data []byte) (err error) {
 			return err
 		}
 		if len(us.completedParts) >= 819 { // 4Gb ~ 5Mb * 819.2
-			log.Print("Maximum file size reached, flushing...")
-			return us.Flush()
+			//log.Print("Maximum file size reached, flushing...")
+			//err =  us.Flush()
+			//if err != nil {
+			//	return err
+			//}
+			return errs.ErrMaxFileSize
 		}
 	}
 	return nil
