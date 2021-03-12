@@ -1,4 +1,20 @@
 # helloworld-data-handler
+
+1. Create a HTTP server using the https://github.com/valyala/fasthttp library
+2. Handle simple JSON request of 
+{"text": "hello world", "content_id": x, "client_id":y, "timestamp": now}  
+* where x is a counter from 1 to 1 billion  
+* where y is a random number between 1 and 10  
+* where now is right now with millisecond precision  
+3. Stream the data to AWS S3 in http://ndjson.org/ format with gzip compression  
+a.it is important the data is streamed and not stored to disk  
+b. it is okay if the file ending is corrupted but better it is not  
+c. the filename should be "/chat/{{date}}/content_logs_{{date}}_{{client_id}}  
+    -  where date is in the format YYYY-MM-DD as in 2020-03-30  
+    -  where client_id is the value from the json message and secure against injection attacks.  
+4. If the server crashes, hits an exception or is terminated by the server (for example when a docker pod is scaled down) it will attempt to flush the current stream.  
+
+
 ## Installation
 1. compile binary.
 2. Set environment variables
